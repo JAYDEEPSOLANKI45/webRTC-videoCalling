@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Calling App</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 24px;
+            background: #232323;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        .video-section {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .video-box {
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 400px;
+            height: 250px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .video-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #222;
+        }
+        .video-label {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 16px;
+        }
+        .controls button {
+            background: #0078d7;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 22px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .controls button.end {
+            background: #d70022;
+        }
+        .controls button:hover {
+            background: #005fa3;
+        }
+        .controls button.end:hover {
+            background: #a80018;
+        }
+        .call-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .call-actions input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #181818;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+        .call-actions button {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .call-actions button:hover {
+            background: #218838;
+        }
+
+        #flash
+        {
+            position: absolute;
+            left: 25%;
+            text-align: center;
+            width: 50%;
+            background-color: black;
+            border-radius: 14px;
+            padding: 5px;
+            border: 1.2px white solid;
+            display: none;
+            z-index: 1000;
+            top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align:center; margin-bottom:24px;">Video Calling App</h2>
+        <div class="video-section">
+            <div class="video-box">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div class="video-label">You</div>
+            </div>
+            <div class="video-box">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="video-label">Remote</div>
+            </div>
+        </div>
+        <div class="controls">
+            <button title="Toggle Mic" id="toggle-mic">&#128264;</button>
+            <button title="Toggle Camera" id="toggle-camera">&#128249;</button>
+            <button class="end" title="End Call" id="end-call">&#128222;</button>
+        </div>
+        <div class="call-actions">
+            <input type="text" placeholder="Enter Room ID" id="roomInput">
+            <button id="joinbtn">Join</button>
+            <button id="startbtn">Start</button>
+        </div>
+    </div>
+    <div id="flash" class="hidden">
+        <p id="flash-message"></p>
+    </div>
+</body>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script >
+
+    const configuration={
+        iceServers: [
+                      { urls: 'stun:global.stun.twilio.com:3478' },
+                      {
+                        urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
+                        credential: 'X9shywXzmApqJo6.......b957qJJaTUn/Dc2ML8kiWF0='
+                      },
+                      {
+                        urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
+                        credential: 'X9shywXzmApqJo6.......b957qJJaTUn/Dc2ML8kiWF0='
+                      },
+                      {
+                        urls: 'turn:global.turn.twilio.com:443?transport=tcp',
+                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
+                        credential: 'X9shywXzmApqJo6........b957qJJaTUn/Dc2ML8kiWF0='
+                      }
+              ],
+              // recommended RTCConfiguration options
+          iceTransportPolicy: 'all',      
+          bundlePolicy: 'max-bundle',
+          rtcpMuxPolicy: 'require',
+          sdpSemantics: 'unified-plan',
+          iceCandidatePoolSize: 0
+        };
+
+    // dynamically get configuration from the server (recommended)
+    // async function getConfiguration(){
+    //     try {
+    //             const res = await fetch("/get-ice-token");
+    //             const configuration = await res.json();
+    //             console.log(configuration);
+    //             return configuration;
+    //     } catch (err) {
+    //         console.error("Error fetching token:", err);
+    //     }
+    // }
+    // const configuration =  getConfiguration();
+
+    const socket = io();
+    let localStream=null;
+
+    //maps
+    const peers={}
+    const pendingCandidates = {};
+
+    //elements
+    const joinButton= document.getElementById('joinbtn');
+    const roomInput= document.getElementById('roomInput');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    remoteVideo.setAttribute('playsinline', true);
+    const toggleMicButton= document.getElementById('toggle-mic')
+    const toggleCameraButton= document.getElementById('toggle-camera')
+    const endCallButton= document.getElementById('end-call')
+
+    //localvideo
+    async function localVideoInit()
+    {
+        if (localStream) return localStream;
+        try{
+            localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true})
+            localVideo.srcObject = localStream;
+            return localStream
+        }
+        catch(err)
+        {
+            console.error("Permission failed")
+            alert("give permissions and retry");
+        }
+    }
+
+
+    //join room
+    joinButton.addEventListener('click',()=>{
+        socket.emit('join-room',roomInput.value);
+    })
+
+    const flashP= document.getElementById('flash-message');
+    
+    const flashDiv= document.getElementById('flash');
+    socket.on('user-joined',(socketId,roomId)=>{
+        flashP.innerText=`User Joined room ${roomId} with id: ${socketId}`;
+        flashDiv.style.display='block'
+        setTimeout(()=>flashDiv.style.display='none',3000);
+    })
+    socket.on('message', (message)=>{
+        console.log(message);
+    })
+
+    socket.on('existing-users',async (clients)=>{
+        console.log("Existing user list: ", clients);
+        await localVideoInit();
+
+        for (let userId of clients)
+        {
+            if(userId!=socket.id)
+            await createOfferTo(userId);
+        }
+    })
+
+    async function createPeerConnection(userId, isInitiator)
+    {
+        const pc = new RTCPeerConnection(configuration);
+        peers[userId] = pc;
+
+        if (!localStream) {
+          await localVideoInit();
+        }
+
+        if(localStream)
+        {
+        for(let track of localStream.getTracks())
+        {
+            pc.addTrack(track,localStream);
+        }
+        }
+        else
+        {
+            await localVideoInit();
+        }
+
+
+        pc.ontrack = (event) => {
+          remoteVideo.srcObject = event.streams[0];
+        }
+
+        pc.onicecandidate = (event) =>{
+            if(event.candidate)
+            socket.emit('ice-candidate', {from:socket.id, to:userId, candidate:event.candidate});
+        }
+
+        pc.oniceconnectionstatechange = (event)=>{
+            console.log(`state change for ${userId}: `, pc.iceConnectionState);
+            if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'closed') {
+            // cleanup if needed
+            }
+        }
+
+        return pc;
+    }
+
+    async function createOfferTo(userId)
+    {
+        const pc = await createPeerConnection(userId, true);
+        try{
+            const offer= await pc.createOffer();
+            console.log(offer);
+            await pc.setLocalDescription(offer);
+
+            socket.emit('offer', { to:userId , from: socket.id , sdp: offer})
+        }
+        catch(error){
+            console.error("error creating offer",error);
+        }
+    }
+
+    socket.on('offer',async ({from,sdp})=>{
+        console.log("Recieved offer from ",from);
+        await localVideoInit();
+        console.log(from,sdp)
+        const pc = await createPeerConnection(from,false);
+        try
+        {
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            await drainPendingCandidates(from);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit('answer', { to: from, from: socket.id, sdp: answer });
+        }
+        catch(error)
+        {
+            console.log("Error occured accepting the offer from", from,error);
+        }
+    })
+
+    socket.on('answer' , async ({from,sdp})=>{
+        console.log("Answer recieved from", from);
+        const pc = peers[from];
+        if(!pc)
+        {
+            console.warn("No peer connection found for", from);
+            return;
+        }
+        try
+        {
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            await drainPendingCandidates(from);
+        }
+        catch(err)
+        {
+            console.error("Error setting remote desc (answer):", err);
+        }
+    })
+
+    socket.on('ice-candidate',async ({from,candidate})=>{
+        if (!candidate) return;
+        const pc = peers[from];
+        if (!pc) {
+            pendingCandidates[from] = pendingCandidates[from] || [];
+            pendingCandidates[from].push(candidate);
+            console.log(`Buffered ICE candidate for ${from} (no PC yet)`);
+            return;
+        }
+        if (!pc.remoteDescription || !pc.remoteDescription.type) {
+            pendingCandidates[from] = pendingCandidates[from] || [];
+            pendingCandidates[from].push(candidate);
+            console.log(`Buffered ICE candidate for ${from} (remoteDesc not set)`);
+            return;
+        }
+        // Always add candidate if remoteDescription is set
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+            console.error("Error adding received ICE candidate", err);
+        }
+    });
+
+    async function drainPendingCandidates(from)
+    {
+        const pc = peers[from];
+        if(!pc) return;
+        const pending=pendingCandidates[from];
+        if(!pending || pending.length==0) return;
+
+        console.log(`Draining ${pending.length} pending candidates for ${from}`);
+        for(const c of pending)
+        {
+            try
+            {
+                await pc.addIceCandidate(new RTCIceCandidate(c));
+            }
+            catch(err)
+            {
+                console.warn(`Failed to add buffered candidate for ${from}`, err);
+            }
+        }
+        pendingCandidates[from] = [];
+    }
+
+    
+</script>
+</html>

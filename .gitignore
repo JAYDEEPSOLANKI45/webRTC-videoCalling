@@ -1,0 +1,7 @@
+node_modules  
+.vs_code
+localhost+1-key.pem
+localhost+1.pem
+localhost+2-key.pem
+localhost+2.pem
+.env
