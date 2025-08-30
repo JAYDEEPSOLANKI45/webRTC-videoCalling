@@ -3,6 +3,7 @@ const { Server } = require('socket.io');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const ejs = require('ejs');
 
 //twilio
 const twilio = require('twilio')
@@ -19,7 +20,7 @@ async function createTokens() {
     console.error('Error creating token:', err);
   }
 }
-
+// createTokens()
 const app = express();
 
 
@@ -29,13 +30,15 @@ const options = {
   cert: fs.readFileSync(path.join(__dirname, 'localhost+1.pem'))
 };
 
-// Serve static files from "public"
-app.use(express.static(path.join(__dirname, 'public')));
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
 app.use(express.json())
 
 // Route to index.html
 app.get('/', async (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // res.sendFile(path.join(__dirname, 'views', 'index.html'));
+    res.render('index.ejs',{urls1:process.env.urls1,urls2:process.env.urls2,urls3:process.env.urls3,urls4:process.env.urls4,username:process.env.user_name,credential:process.env.credential});
 });
 
 app.get("/get-ice-token", async (req, res) => {

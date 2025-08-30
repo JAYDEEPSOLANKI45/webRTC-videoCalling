@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "dotenv": "^17.2.1",
+    "ejs": "^3.1.10",
     "express": "^5.1.0",
     "https": "^1.0.0",
     "mkcert": "^3.2.0",

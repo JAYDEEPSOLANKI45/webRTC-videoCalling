@@ -154,24 +154,26 @@
 <script >
 
     const configuration={
-        iceServers: [
-                      { urls: 'stun:global.stun.twilio.com:3478' },
-                      {
-                        urls: 'turn:global.turn.twilio.com:3478?transport=udp',
-                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
-                        credential: 'X9shywXzmApqJo6.......b957qJJaTUn/Dc2ML8kiWF0='
-                      },
-                      {
-                        urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
-                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
-                        credential: 'X9shywXzmApqJo6.......b957qJJaTUn/Dc2ML8kiWF0='
-                      },
-                      {
-                        urls: 'turn:global.turn.twilio.com:443?transport=tcp',
-                        username: '1f22472816c5db894df8302f.......2522c9f8dadc2e51cefd115ad0c1bc3f249',
-                        credential: 'X9shywXzmApqJo6........b957qJJaTUn/Dc2ML8kiWF0='
-                      }
-              ],
+            iceServers: [
+          {
+            urls: <%- JSON.stringify(urls1) %>
+          },
+          {
+            urls: <%- JSON.stringify(urls2) %>,
+            username: <%- JSON.stringify(username) %>,
+            credential: <%- JSON.stringify(credential) %>
+          },
+          {
+            urls: <%- JSON.stringify(urls3) %>,
+            username: <%- JSON.stringify(username) %>,
+            credential: <%- JSON.stringify(credential) %>
+          },
+          {
+            urls: <%- JSON.stringify(urls4) %>,
+            username: <%- JSON.stringify(username) %>,
+            credential: <%- JSON.stringify(credential) %>
+          }
+        ],
               // recommended RTCConfiguration options
           iceTransportPolicy: 'all',      
           bundlePolicy: 'max-bundle',
